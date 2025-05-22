@@ -3,13 +3,13 @@ pipeline {
     
     environment {
         // Docker Hub credentials ID as configured in Jenkins
-        DOCKERHUB_CREDENTIALS = credentials('dockerhub-credentials')
+        DOCKERHUB_CREDENTIALS = credentials('DockerHubCred')
         // Your Docker Hub username
-        DOCKER_USERNAME = 'gupta9939'
+        DOCKER_USERNAME = ' itsankit123'
         // Application version/tag
         APP_VERSION = '02'
         // GitHub repository URL
-        GITHUB_REPO = 'https://github.com/Ramjikumarcom/E-Health-Management-node-js.git'
+        GITHUB_REPO = 'https://github.com/123AnkitSharma/E-Health-Management-node-js.git'
         // GitHub branch
         GITHUB_BRANCH = 'main'
         // Environment variables for the application
@@ -79,17 +79,17 @@ REACT_APP_API_BASE_URL=${env.REACT_APP_API_BASE_URL}
                     
                     // Build MongoDB image
                     sh """
-                    cd Telemedicine-app && docker build -t ${DOCKER_USERNAME}/e_health_management:${APP_VERSION} -f Dockerfile.mongo .
+                    cd Telemedicine-app && docker build -t ${DOCKER_USERNAME}/healthmanagement-database:${APP_VERSION} -f Dockerfile.mongo .
                     """
                     
                     // Build backend image directly with Docker
                     sh """
-                    cd Telemedicine-app && docker build -t ${DOCKER_USERNAME}/e_health_management_backend:${APP_VERSION} .
+                    cd Telemedicine-app && docker build -t ${DOCKER_USERNAME}/healthmanagement-backened:${APP_VERSION} .
                     """
                     
                     // Build frontend image directly with Docker
                     sh """
-                    cd Telemedicine-app && docker build -t ${DOCKER_USERNAME}/e_health_management_frontend:${APP_VERSION} -f client/Dockerfile client/
+                    cd Telemedicine-app && docker build -t ${DOCKER_USERNAME}/healthmanagement-frontend:${APP_VERSION} -f client/Dockerfile client/
                     """
                     
                     echo "Successfully built Docker images"
@@ -101,13 +101,13 @@ REACT_APP_API_BASE_URL=${env.REACT_APP_API_BASE_URL}
             steps {
                 script {
                     // Push MongoDB image
-                    sh "docker push $DOCKER_USERNAME/e_health_management:$APP_VERSION"
+                    sh "docker push $DOCKER_USERNAME/healthmanagement-database:$APP_VERSION"
                     
                     // Push backend image
-                    sh "docker push $DOCKER_USERNAME/e_health_management_backend:$APP_VERSION"
+                    sh "docker push $DOCKER_USERNAME/healthmanagement-backened:$APP_VERSION"
                     
                     // Push frontend image
-                    sh "docker push $DOCKER_USERNAME/e_health_management_frontend:$APP_VERSION"
+                    sh "docker push $DOCKER_USERNAME/healthmanagement-frontend:$APP_VERSION"
                     
                     echo "Successfully pushed all images to Docker Hub"
                 }
@@ -258,13 +258,13 @@ REACT_APP_API_BASE_URL=${env.REACT_APP_API_BASE_URL}
                     docker network create telemedicine-network || true
                     
                     # Run MongoDB container
-                    docker run -d --name mongodb -p 27017:27017 --network telemedicine-network ${DOCKER_USERNAME}/e_health_management:${APP_VERSION}
+                    docker run -d --name mongodb -p 27017:27017 --network telemedicine-network ${DOCKER_USERNAME}/healthmanagement-database:${APP_VERSION}
                     
                     # Run backend container
-                    docker run -d --name e_health_backend -p 5000:5000 --env-file Telemedicine-app/.env --network telemedicine-network ${DOCKER_USERNAME}/e_health_management_backend:${APP_VERSION}
+                    docker run -d --name e_health_backend -p 5000:5000 --env-file Telemedicine-app/.env --network telemedicine-network ${DOCKER_USERNAME}/healthmanagement-backend:${APP_VERSION}
                     
                     # Run frontend container
-                    docker run -d --name e_health_frontend -p 3000:3000 --env-file Telemedicine-app/client/.env --network telemedicine-network ${DOCKER_USERNAME}/e_health_management_frontend:${APP_VERSION}
+                    docker run -d --name e_health_frontend -p 3000:3000 --env-file Telemedicine-app/client/.env --network telemedicine-network ${DOCKER_USERNAME}/healthmanagement-frontend:${APP_VERSION}
                     """
                     
                     echo "Application deployed successfully with Docker"
