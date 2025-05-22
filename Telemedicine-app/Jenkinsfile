@@ -125,60 +125,63 @@ EOT
             }
         }
         
-        stage('Kubernetes Deployment') {
-            when {
-                expression { return env.DEPLOYMENT_METHOD == 'kubernetes' }
-            }
-            steps {
-                dir('src/Telemedicine-app/kubernetes') {
-                    script {
-                        sh '''
-                        mkdir -p ${HOME}/.kube
-                        cp ${KUBECONFIG} ${HOME}/.kube/config
-                        chmod 600 ${HOME}/.kube/config
-                        export KUBECONFIG=${HOME}/.kube/config
-                        '''
-                        
-                        sh """
-                        kubectl create namespace ${K8S_NAMESPACE} --dry-run=client -o yaml | kubectl apply -f -
-                        """
-                        
-                        sh """
-                        kubectl create secret generic app-secrets \
-                            --namespace ${K8S_NAMESPACE} \
-                            --from-literal=MONGO_URI=${MONGO_URI} \
-                            --from-literal=JWT_SECRET=${JWT_SECRET} \
-                            --dry-run=client -o yaml | kubectl apply -f -
-                        """
-                        
-                        sh '''
-                        sed -i "s|itsankit123/healthmanagement-|${DOCKER_USERNAME}/healthmanagement-|g" *.yaml
-                        sed -i "s|:latest|:${APP_VERSION}|g" *.yaml
-                        
-                        kubectl apply -f namespace.yaml
-                        kubectl apply -f secret.yaml
-                        kubectl apply -f mongo.yaml
-                        kubectl apply -f backend.yaml
-                        kubectl apply -f frontend.yaml
-                        
-                        kubectl rollout status deployment/backend -n ${K8S_NAMESPACE} --timeout=300s
-                        kubectl rollout status deployment/frontend -n ${K8S_NAMESPACE} --timeout=300s
-                        '''
-                        
-                        sh '''
-                        echo "Deployment status:"
-                        kubectl get all -n ${K8S_NAMESPACE}
-                        
-                        echo -e "\nAccess URLs:"
-                        kubectl get ingress -n ${K8S_NAMESPACE} -o jsonpath='{.items[*].spec.rules[*].host}' || \
-                            echo "No ingress found, using NodePort: \n\$(kubectl get svc frontend -n ${K8S_NAMESPACE} -o jsonpath='{.spec.ports[0].nodePort}')"
-                        '''
-                    }
+stage('Kubernetes Deployment') {
+    when {
+        expression { return env.DEPLOYMENT_METHOD == 'kubernetes' }
+    }
+    steps {
+        dir('src/Telemedicine-app/kubernetes') {
+            script {
+                // First write the kubeconfig to a temporary file
+                withCredentials([file(credentialsId: 'jenkins-k8s-token', variable: 'KUBECONFIG_FILE')]) {
+                    sh '''
+                    mkdir -p ${HOME}/.kube
+                    cp "${KUBECONFIG_FILE}" ${HOME}/.kube/config
+                    chmod 600 ${HOME}/.kube/config
+                    export KUBECONFIG=${HOME}/.kube/config
+                    '''
                 }
+
+                // Rest of your Kubernetes deployment commands...
+                sh """
+                kubectl create namespace ${K8S_NAMESPACE} --dry-run=client -o yaml | kubectl apply -f -
+                """
+                
+                sh """
+                kubectl create secret generic app-secrets \
+                    --namespace ${K8S_NAMESPACE} \
+                    --from-literal=MONGO_URI=${MONGO_URI} \
+                    --from-literal=JWT_SECRET=${JWT_SECRET} \
+                    --dry-run=client -o yaml | kubectl apply -f -
+                """
+                
+                sh '''
+                sed -i "s|itsankit123/healthmanagement-|${DOCKER_USERNAME}/healthmanagement-|g" *.yaml
+                sed -i "s|:latest|:${APP_VERSION}|g" *.yaml
+                
+                kubectl apply -f namespace.yaml
+                kubectl apply -f secret.yaml
+                kubectl apply -f mongo.yaml
+                kubectl apply -f backend.yaml
+                kubectl apply -f frontend.yaml
+                
+                kubectl rollout status deployment/backend -n ${K8S_NAMESPACE} --timeout=300s
+                kubectl rollout status deployment/frontend -n ${K8S_NAMESPACE} --timeout=300s
+                '''
+                
+                sh '''
+                echo "Deployment status:"
+                kubectl get all -n ${K8S_NAMESPACE}
+                
+                echo -e "\nAccess URLs:"
+                kubectl get ingress -n ${K8S_NAMESPACE} -o jsonpath='{.items[*].spec.rules[*].host}' || \
+                    echo "No ingress found, using NodePort: \n\$(kubectl get svc frontend -n ${K8S_NAMESPACE} -o jsonpath='{.spec.ports[0].nodePort}')"
+                '''
             }
         }
     }
-    
+}
+        
     post {
         always {
             sh 'docker logout || true'
