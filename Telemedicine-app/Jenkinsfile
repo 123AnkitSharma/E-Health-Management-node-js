@@ -165,14 +165,14 @@ EOT
                         kubectl rollout status deployment/frontend -n ${K8S_NAMESPACE} --timeout=300s
                         '''
                         
-                        sh """
+                        sh '''
                         echo "Deployment status:"
                         kubectl get all -n ${K8S_NAMESPACE}
                         
                         echo -e "\nAccess URLs:"
                         kubectl get ingress -n ${K8S_NAMESPACE} -o jsonpath='{.items[*].spec.rules[*].host}' || \
-                            echo "No ingress found, using NodePort: \n$(kubectl get svc frontend -n ${K8S_NAMESPACE} -o jsonpath='{.spec.ports[0].nodePort}')"
-                        """
+                            echo "No ingress found, using NodePort: \n\$(kubectl get svc frontend -n ${K8S_NAMESPACE} -o jsonpath='{.spec.ports[0].nodePort}')"
+                        '''
                     }
                 }
             }
