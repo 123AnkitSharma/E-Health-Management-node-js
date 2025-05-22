@@ -2,24 +2,33 @@ pipeline {
     agent any
     
     environment {
-        // Docker Hub credentials ID as configured in Jenkins
-        DOCKERHUB_CREDENTIALS = credentials('DockerHubCred')
-        // Your Docker Hub username
-        DOCKER_USERNAME = ' itsankit123'
-        // Application version/tag
-        APP_VERSION = '02'
-        // GitHub repository URL
-        GITHUB_REPO = 'https://github.com/123AnkitSharma/E-Health-Management-node-js.git'
-        // GitHub branch
-        GITHUB_BRANCH = 'main'
-        // Environment variables for the application
-        MONGO_URI = 'mongodb://mongodb:27017/telemedicine'
-        JWT_SECRET = 'your_jwt_secret_key_here'
-        PORT = '5000'
-        REACT_APP_API_BASE_URL = 'http://localhost:5000'
-        // Deployment method: 'ansible', 'kubernetes', or 'docker'
-        DEPLOYMENT_METHOD = 'kubernetes'
-    }
+    // Docker Hub credentials ID as configured in Jenkins
+    DOCKERHUB_CREDENTIALS = credentials('DockerHubCred')
+    
+    // Kubernetes config file from Jenkins credentials (must be of type: "Secret file")
+    KUBECONFIG = credentials('jenkins-kubeconfig')
+    
+    // Your Docker Hub username
+    DOCKER_USERNAME = 'itsankit123'
+    
+    // Application version/tag
+    APP_VERSION = '02'
+    
+    // GitHub repository URL
+    GITHUB_REPO = 'https://github.com/123AnkitSharma/E-Health-Management-node-js.git'
+    
+    // GitHub branch
+    GITHUB_BRANCH = 'main'
+    
+    // Environment variables for the application
+    MONGO_URI = 'mongodb://mongodb:27017/telemedicine'
+    JWT_SECRET = 'your_jwt_secret_key_here'
+    PORT = '5000'
+    REACT_APP_API_BASE_URL = 'http://localhost:5000'
+    
+    // Deployment method: 'ansible', 'kubernetes', or 'docker'
+    DEPLOYMENT_METHOD = 'kubernetes'
+}
     
     stages {
         stage('Checkout from GitHub') {
