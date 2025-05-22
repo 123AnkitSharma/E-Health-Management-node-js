@@ -181,6 +181,7 @@ stage('Kubernetes Deployment') {
         }
     }
 }
+    }
         
     post {
         always {
