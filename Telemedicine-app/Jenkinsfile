@@ -2,9 +2,9 @@ pipeline {
     agent any
     
     environment {
-        // Credentials - Updated to match your credential IDs
-        DOCKERHUB_CREDENTIALS = credentials('DockerHubCred')  // Changed to match your credential ID
-        KUBECONFIG = credentials('jenkins-k8s-token')       // Changed to match your credential ID
+        // Credentials
+        DOCKERHUB_CREDENTIALS = credentials('DockerHubCred')
+        KUBECONFIG = credentials('jenkins-k8s-token')
         
         // Application Configuration
         DOCKER_USERNAME = 'itsankit123'
@@ -12,9 +12,9 @@ pipeline {
         GITHUB_REPO = 'https://github.com/123AnkitSharma/E-Health-Management-node-js.git'
         GITHUB_BRANCH = 'main'
         
-        // Application Secrets - Updated to match your credential IDs
-        MONGO_URI = credentials('mongo-uri')      // Changed to match your credential ID
-        JWT_SECRET = credentials('jwt-secret')    // Changed to match your credential ID (case-sensitive)
+        // Application Secrets
+        MONGO_URI = credentials('mongo-uri')
+        JWT_SECRET = credentials('jwt-secret')
         PORT = '5000'
         REACT_APP_API_BASE_URL = 'http://localhost:5000'
         
@@ -28,7 +28,7 @@ pipeline {
             steps {
                 cleanWs()
                 echo "Starting deployment of E-Health Management System"
-                sh "printenv | sort" // Debug environment variables
+                sh "printenv | sort"
             }
         }
         
@@ -42,7 +42,7 @@ pipeline {
                         $class: 'RelativeTargetDirectory',
                         relativeTargetDir: 'src'
                     ]]
-                )
+                ])
                 
                 dir('src') {
                     sh '''
@@ -57,20 +57,18 @@ pipeline {
         stage('Setup Environment') {
             steps {
                 dir('src/Telemedicine-app') {
-                    // Create .env files from Jenkins credentials
                     sh """
                     cat <<EOT > .env
-                    MONGO_URI=${MONGO_URI}
-                    JWT_SECRET=${JWT_SECRET}
-                    PORT=${PORT}
-                    EOT
+MONGO_URI=${MONGO_URI}
+JWT_SECRET=${JWT_SECRET}
+PORT=${PORT}
+EOT
                     
                     cat <<EOT > client/.env
-                    REACT_APP_API_BASE_URL=${REACT_APP_API_BASE_URL}
-                    EOT
+REACT_APP_API_BASE_URL=${REACT_APP_API_BASE_URL}
+EOT
                     """
                     
-                    // Verify files were created
                     sh '''
                     echo "Backend .env:"
                     cat .env
@@ -85,16 +83,14 @@ pipeline {
             steps {
                 dir('src/Telemedicine-app') {
                     script {
-                        // Authenticate with Docker Hub using the correct credential ID
                         withCredentials([usernamePassword(
-                            credentialsId: 'DockerHubCred',  // Updated to match your credential ID
+                            credentialsId: 'DockerHubCred',
                             usernameVariable: 'DOCKER_USER',
                             passwordVariable: 'DOCKER_PASS'
                         )]) {
                             sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
                         }
                         
-                        // Build images in parallel
                         parallel(
                             "Database": {
                                 sh "docker build -t ${DOCKER_USERNAME}/healthmanagement-database:${APP_VERSION} -f Dockerfile.mongo ."
@@ -115,7 +111,7 @@ pipeline {
             steps {
                 script {
                     withCredentials([usernamePassword(
-                        credentialsId: 'DockerHubCred',  // Updated to match your credential ID
+                        credentialsId: 'DockerHubCred',
                         usernameVariable: 'DOCKER_USER',
                         passwordVariable: 'DOCKER_PASS'
                     )]) {
@@ -136,7 +132,6 @@ pipeline {
             steps {
                 dir('src/Telemedicine-app/kubernetes') {
                     script {
-                        // Setup kubectl using the correct credential ID
                         sh '''
                         mkdir -p ${HOME}/.kube
                         cp ${KUBECONFIG} ${HOME}/.kube/config
@@ -144,12 +139,10 @@ pipeline {
                         export KUBECONFIG=${HOME}/.kube/config
                         '''
                         
-                        // Create namespace if not exists
                         sh """
                         kubectl create namespace ${K8S_NAMESPACE} --dry-run=client -o yaml | kubectl apply -f -
                         """
                         
-                        // Create Kubernetes secrets using the correct credential references
                         sh """
                         kubectl create secret generic app-secrets \
                             --namespace ${K8S_NAMESPACE} \
@@ -158,25 +151,20 @@ pipeline {
                             --dry-run=client -o yaml | kubectl apply -f -
                         """
                         
-                        // Deploy application
                         sh '''
-                        # Update image tags in deployment files
                         sed -i "s|itsankit123/healthmanagement-|${DOCKER_USERNAME}/healthmanagement-|g" *.yaml
                         sed -i "s|:latest|:${APP_VERSION}|g" *.yaml
                         
-                        # Apply Kubernetes manifests
                         kubectl apply -f namespace.yaml
                         kubectl apply -f secret.yaml
                         kubectl apply -f mongo.yaml
                         kubectl apply -f backend.yaml
                         kubectl apply -f frontend.yaml
                         
-                        # Wait for rollout to complete
                         kubectl rollout status deployment/backend -n ${K8S_NAMESPACE} --timeout=300s
                         kubectl rollout status deployment/frontend -n ${K8S_NAMESPACE} --timeout=300s
                         '''
                         
-                        // Get application URLs
                         sh """
                         echo "Deployment status:"
                         kubectl get all -n ${K8S_NAMESPACE}
@@ -193,17 +181,14 @@ pipeline {
     
     post {
         always {
-            // Cleanup Docker credentials
             sh 'docker logout || true'
             
-            // Cleanup sensitive files
             dir('src/Telemedicine-app') {
                 sh '''
                 rm -f .env client/.env || true
                 '''
             }
             
-            // Cleanup kubeconfig
             sh '''
             rm -f ${HOME}/.kube/config || true
             '''
